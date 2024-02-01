@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splittic Captcha - Frontend</title>
+  <meta property="og:title" content="Splittic Captcha - Frontend">
+  <meta property="og:description" content="Interactive captcha with image selection">
+  <meta property="og:image" content="https://cdn.discordapp.com/icons/1187442403871822004/875c92d082d2623cded9e58ec4e6ddba.webp?size=512">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+
+    .captcha-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .captcha-box {
+      position: relative;
+      width: 128px;
+      height: 128px;
+      border: 1px solid #ccc;
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      position: relative;
+    }
+
+    .captcha-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .selected {
+      border: 2px solid blue;
+    }
+
+    .indicator-dot {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      display: none;
+    }
+
+    .correct {
+      background-color: green;
+    }
+
+    .incorrect {
+      background-color: red;
+    }
+
+    #submit,
+    #regenerate {
+      margin-top: 20px;
+      padding: 10px;
+      font-size: 16px;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    #regenerate {
+      background-color: #337ab7;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>Splittic Captcha - Frontend</h2>
+  <div>
+    <p id="captchaHeader"></p>
+  </div>
+  <div class="captcha-container" id="captchaContainer"></div>
+  <button id="submit" onclick="validateCaptcha()">Submit</button>
+  <button id="regenerate" onclick="generateCaptcha()">Regenerate</button>
+
+
+  <script>
+    let selectedCategory = "";
+
+    document.addEventListener("DOMContentLoaded", function () {
+      generateCaptcha();
+    });
+    function generateCaptcha() {
+      submitButton = document.getElementById("submit")
+      submitButton.disabled = true;
+      regenerateButton = document.getElementById("regenerate");
+      regenerateButton.disabled = true;
+      const captchaContainer = document.getElementById("captchaContainer");
+      const captchaHeader = document.getElementById("captchaHeader");
+
+      categories = [
+        "cat", "car", "train", "person", "dog", "lion", "elephant", "bird", "tree",
+        "flower", "building", "bicycle", "fish", "book", "computer", "keyboard",
+        "mountain", "sun", "moon", "star", "guitar", "pizza", "beach", "camera",
+        "umbrella", "clock", "apple", "robot", "shoe", "hat", "globe", "ship",
+        "cupcake", "rocket", "cloud", "key", "sword", "butterfly", "horse",
+        "moonlight", "fire", "cactus", "castle", "dragon", "volcano", "snowflake",
+        "lighthouse", "bridge", "rainbow", "planet", "ocean", "penguin", "unicorn",
+        "dragonfly", "tiger", "helicopter", "tractor", "sunflower", "dolphin",
+        "microphone", "pineapple", "robot", "whale", "hot air balloon", "airplane",
+        "carousel", "jellyfish", "piano", "coffee cup", "candle", "feather",
+        "giraffe", "owl", "hamburger", "telephone", "camera", "microscope",
+        "rocketship", "train station", "motorcycle", "chocolate", "ice cream",
+        "leopard", "deer", "waterfall", "parrot", "penguin", "strawberry",
+        "lighthouse", "butterfly", "caterpillar", "rose", "sunset", "sunrise",
+        "desert", "forest", "waterfall", "cottage", "hedgehog", "turtle", "palm tree",
+        "eagle", "koala", "snake", "panda", "cheetah", "zebra", "kangaroo",
+        "dragonfly", "bat", "dinosaur", "kite", "bee", "crown", "sailboat", "toothbrush",
+        "broom", "umbrella", "volcano", "crown", "couch", "train tracks", "calculator",
+        "snowman", "raindrop", "laptop", "globe", "puzzle piece", "sunglasses",
+        "compass", "light bulb", "mailbox", "pencil", "cherry", "mushroom",
+        "teapot", "jigsaw puzzle", "mailbox", "butterfly", "jacket", "maple leaf",
+        "penguin", "giraffe", "sunflower", "cactus", "eiffel tower", "hourglass",
+        "mermaid", "pirate ship", "wizard hat", "airship", "rocket", "telescope",
+        "moonwalk", "chess piece", "palm tree", "cactus", "cloud", "rainbow",
+        "snowflake", "volcano", "tornado", "whirlpool", "earthquake", "lightning"
+      ];
+      const addArticle = (word) => {
+        const vowels = ["a", "e", "i", "o", "u"];
+        return vowels.includes(word[0].toLowerCase()) ? "an " + word : "a " + word;
+      };
+
+
+
+      selectedCategory = categories[Math.floor(Math.random() * categories.length)];
+      selectedCategoryTitle = addArticle(selectedCategory);
+      captchaHeader.textContent = `Select all images that contain ${selectedCategoryTitle}`;
+
+      captchaContainer.innerHTML = "";
+
+      // Ensure there are at least 3 images of the wanted category
+      const selectedCategoryIndices = [];
+      for (let i = 0; i < 9; i++) {
+        const categoryIndex = i < 3
+          ? categories.indexOf(selectedCategory)
+          : Math.floor(Math.random() * categories.length);
+
+        selectedCategoryIndices.push(categoryIndex);
+      }
+
+      const fetchPromises = selectedCategoryIndices.map((categoryIndex, index) => {
+        return fetchImageBase64(categories[categoryIndex])
+          .then(base64 => {
+            const captchaBox = document.createElement("div");
+            captchaBox.classList.add("captcha-box");
+            captchaBox.dataset.category = categories[categoryIndex];
+            captchaBox.innerHTML = `<img src="${base64}" alt="${categories[categoryIndex]}">`;
+            const indicatorDot = document.createElement("div");
+            captchaBox.addEventListener("click", toggleSelection);
+
+            captchaContainer.appendChild(captchaBox); // Append the image to the container
+          });
+      });
+
+      // Wait for all images to be fetched and loaded
+      Promise.all(fetchPromises)
+        .then(() => {
+          console.log("All images loaded successfully!");
+          submitButton.disabled = false;
+          regenerateButton.disabled = false;
+        })
+        .catch(error => {
+          console.error("Error loading images:", error);
+        });
+    }
+
+
+
+    function fetchImageBase64(category) {
+      const imageUrl = `https://source.unsplash.com/random/?${category}`;
+      return fetch(imageUrl)
+        .then(response => response.blob())
+        .then(blob => new Promise(resolve => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        }));
+    }
+
+    function toggleSelection() {
+      this.classList.toggle("selected");
+    }
+
+    function validateCaptcha() {
+      submitButton.disabled = true;
+      regenerateButton.disabled = true;
+      const selectedBoxes = document.querySelectorAll(".selected");
+      const selectedCategories = Array.from(selectedBoxes).map(box => box.dataset.category);
+
+      const allImagesSelected = selectedCategories.every(category => category === selectedCategory);
+      const allImagesRequiredSelected = document.querySelectorAll(`.captcha-box[data-category="${selectedCategory}"]`).length === selectedBoxes.length;
+
+      const resultContainer = document.createElement("div");
+      resultContainer.style.position = "fixed";
+      resultContainer.style.top = "50%";
+      resultContainer.style.left = "50%";
+      resultContainer.style.transform = "translate(-50%, -50%)";
+      resultContainer.style.display = "flex";
+      resultContainer.style.flexDirection = "column";
+      resultContainer.style.alignItems = "center";
+      resultContainer.style.justifyContent = "center"; // Center the content vertically
+      resultContainer.style.zIndex = "9999";
+      resultContainer.style.width = "150px"; // Set the width to create a square shape
+      resultContainer.style.height = "150px"; // Set the height to create a square shape
+      resultContainer.style.borderRadius = "10px"; // Add rounded corners
+      resultContainer.style.boxShadow = "0 0 10px rgba(0, 0, 0, 0.3)"; // Add a subtle shadow
+
+      const resultSymbol = document.createElement("span");
+      resultSymbol.style.fontSize = "72px"; // Increase the font size for a larger symbol
+      resultSymbol.style.color = "white";
+
+      if (allImagesSelected && allImagesRequiredSelected) {
+        resultContainer.style.background = "green";
+        resultSymbol.innerHTML = "&#10004;"; // Checkmark symbol
+        setTimeout(() => {
+          submitButton.disabled = false;
+          regenerateButton.disabled = false;
+          generateCaptcha();
+          resultContainer.remove();
+        }, 3000);
+      } else {
+        resultContainer.style.background = "red";
+        resultSymbol.innerHTML = "&#10008;"; // Cross symbol
+        setTimeout(() => {
+          submitButton.disabled = false;
+          regenerateButton.disabled = false;
+          resultContainer.remove();
+        }, 3000);
+      }
+
+      resultContainer.appendChild(resultSymbol);
+      document.body.appendChild(resultContainer);
+    }
+
+
+
+
+
+
+  </script>
+</body>
+
+</html>
